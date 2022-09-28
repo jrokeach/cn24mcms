@@ -1,0 +1,25 @@
+set system host-name vmx1
+set chassis aggregated-devices ethernet device-count 6
+set interfaces ge-0/0/0 description "vmx2 ge-0/0/0"
+set interfaces ge-0/0/1 description "k8s-master eth1"
+set interfaces ge-0/0/1 encapsulation ethernet-bridge
+set interfaces ge-0/0/1 unit 0 family bridge
+set interfaces ge-0/0/2 description "k8s-worker1 eth1"
+set interfaces ge-0/0/2 encapsulation ethernet-bridge
+set interfaces ge-0/0/2 unit 0 family bridge
+set interfaces ge-0/0/3 description "k8s-worker2 eth1"
+set interfaces ge-0/0/3 encapsulation ethernet-bridge
+set interfaces ge-0/0/3 unit 0 family bridge
+set interfaces ge-0/0/4 description "k8s-worker3 eth1"
+set interfaces ge-0/0/4 encapsulation ethernet-bridge
+set interfaces ge-0/0/4 unit 0 family bridge
+set interfaces ge-0/0/5 description "Pretend-ACX eth1"
+set interfaces ge-0/0/5 encapsulation ethernet-bridge
+set interfaces ge-0/0/5 unit 0 family bridge
+set interfaces irb unit 101 family inet address 192.168.50.1/24
+set bridge-domains KUBERNETES vlan-id 101
+set bridge-domains KUBERNETES interface ge-0/0/1.0
+set bridge-domains KUBERNETES interface ge-0/0/2.0
+set bridge-domains KUBERNETES interface ge-0/0/3.0
+set bridge-domains KUBERNETES interface ge-0/0/4.0
+set bridge-domains KUBERNETES routing-interface irb.101

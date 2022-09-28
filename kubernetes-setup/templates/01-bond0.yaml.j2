@@ -1,0 +1,12 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth1:
+      dhcp4: no
+      addresses: [{{ ip4addr }}]
+      routes:
+        - to: {{ ip4route }}
+          via: {{ ip4gw }}
+    eth2:
+      dhcp4: no

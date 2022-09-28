@@ -1,0 +1,8 @@
+set system host-name vmx2
+set chassis aggregated-devices ethernet device-count 6
+set interfaces ge-0/0/0 description "vmx1 ge-0/0/0"
+set interfaces ge-0/0/1 description "k8s-master eth2"
+set interfaces ge-0/0/2 description "k8s-worker1 eth2"
+set interfaces ge-0/0/3 description "k8s-worker2 eth2"
+set interfaces ge-0/0/4 description "k8s-worker3 eth2"
+set interfaces ge-0/0/5 description "Pretend-ACX eth2"

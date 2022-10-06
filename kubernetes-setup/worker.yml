@@ -1,0 +1,35 @@
+---
+- hosts: k8s_workers
+  collections:
+  - ansible.posix
+  become: true
+  vars:
+    ansible_user: jcluser
+    ansible_host_key_checking: false
+  tasks:
+  - name: Add sshkey
+    authorized_key:
+      user: root
+      state: present
+      key: "{{ lookup('file', '/home/jcluser/.ssh/id_rsa.pub') }}"
+
+  - name: Set Hostname
+    hostname:
+      name: "{{ inventory_hostname }}"
+
+  - name: Set up netplan
+    template:
+      src: templates/01-eth1.yaml.j2
+      dest: /etc/netplan/01-eth1.yaml
+      backup: yes
+    register: bond0_netplan
+
+  - name: Apply netplan
+    command: netplan apply
+    when: bond0_netplan.changed
+
+  - name: Update hostsfile
+    replace:
+      path: /etc/hosts
+      regexp: '(\s+)ubuntu(\s+.*)?$'
+      replace: '\1{{ inventory_hostname }}\2'

@@ -1,0 +1,209 @@
+---
+- hosts: localhost
+  collections:
+  - community.general
+  - community.crypto
+  become: true
+  tasks:
+  - name: Set Hostname
+    hostname:
+      name: k8s-master
+
+  - name: Set up ansible hosts file (edit this as required)
+    copy:
+      content: |
+        all:
+          hosts:
+            localhost:
+              ansible_connection: local
+              ip4addr: 192.168.50.10/24
+              ip4gw: 192.168.50.1
+            k8s-master:
+              ansible_host: 100.123.35.1
+              ip4addr: 192.168.50.10/24
+              ip4gw: 192.168.50.1
+              ansible_user: root
+          children:
+            k8s_workers:
+              hosts:
+                k8s-worker1:
+                  ansible_host: 100.123.35.2
+                  ip4addr: 192.168.50.21/24
+                  ip4gw: 192.168.50.1
+                k8s-worker2:
+                  ansible_host: 100.123.35.3
+                  ip4addr: 192.168.50.22/24
+                  ip4gw: 192.168.50.1
+                k8s-worker3:
+                  ansible_host: 100.123.35.4
+                  ip4addr: 192.168.50.23/24
+                  ip4gw: 192.168.50.1
+              vars:
+                ansible_user: root
+          vars:
+            ip4route: 192.168.0.0/16
+            ansible_user: jcluser
+            artifacts_dir: /tmp/mycluster
+            cluster_name: cluster0.lab.lan
+            container_manager: crio          # container runtime
+            # docker_image_repo: <your docker repository URL>
+            download_container: false
+            download_localhost: true
+            download_run_once: true
+            enable_dual_stack_networks: true
+            enable_nodelocaldns: false
+            etcd_deployment_type: host
+            host_key_checking: false
+            kube_network_plugin: cni
+            kube_network_plugin_multus: true
+            kubeconfig_localhost: true
+            kubectl_localhost: true
+            kubelet_deployment_type: host
+            override_system_hostname: false
+        kube-master:
+          hosts:
+            k8s-master:
+        kube-node:
+          hosts:
+            k8s-worker1:
+            k8s-worker2:
+            k8s-worker3:
+        etcd:
+          hosts:
+            k8s-master:
+        k8s-cluster:
+          children:
+            kube-master:
+            kube-node:
+      dest: /etc/ansible/hosts
+
+  - name: Refresh inventory
+    meta: refresh_inventory
+
+  - name: Set up netplan
+    template:
+      src: templates/01-eth1.yaml.j2
+      dest: /etc/netplan/01-eth1.yaml
+      backup: yes
+    register: netplan
+
+  - name: Apply netplan
+    command: netplan apply
+    when: netplan.changed
+    
+  - name: Update hostsfile
+    replace:
+      path: /etc/hosts
+      regexp: '(\s+)ubuntu(\s+.*)?$'
+      replace: '\1k8s-master\2'
+
+  - name: Install sshpass for demo environment
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: 
+    vars:
+      packages:
+      - sshpass
+
+  - name: Ensure .ssh directory exists
+    file:
+      path: /home/jcluser/.ssh
+      state: directory
+      owner: jcluser
+      group: jcluser
+      mode: 0700
+
+  - name: Generate SSH keypair
+    become: false
+    openssh_keypair:
+      path: /home/jcluser/.ssh/id_rsa
+      size: 2048
+      owner: jcluser
+      group: jcluser
+
+  - name: Add sshkey
+    authorized_key:
+      user: root
+      state: present
+      key: "{{ lookup('file', '/home/jcluser/.ssh/id_rsa.pub') }}"
+
+  - name: Install packages
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+      - python3-netaddr
+
+  - name: Add apt signing key for Kubernetes
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      state: present
+
+  - name: Adding apt repository for Kubernetes
+    apt_repository:
+      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: kubernetes.list
+
+  - name: Add an apt signing key for Helm
+    apt_key:
+      url: https://baltocdn.com/helm/signing.asc
+      state: present
+
+  - name: Adding apt repository for Helm
+    apt_repository:
+      repo: deb https://baltocdn.com/helm/stable/debian/ all main
+      state: present
+      filename: helm-stable.list
+
+  - name: Install Helm
+    apt: 
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+        - helm
+  
+  - name: Clone kubespray
+    become: false
+    git:
+      repo: 'https://github.com/kubernetes-sigs/kubespray.git'
+      version: release-2.20
+      dest: /home/jcluser/kubespray
+      depth: 1
+    register: kubespray_clone
+    failed_when:
+      - kubespray_clone.failed
+      - not 'Local modifications exist in repository' in kubespray_clone.msg
+
+  - name: Disable node local DNS
+    become: false
+    replace:
+      path: /home/jcluser/kubespray/roles/kubespray-defaults/defaults/main.yaml
+      regexp: '^enable_nodelocaldns: true$'
+      replace: 'enable_nodelocaldns: false'
+
+  - name: Enable multus
+    become: false
+    replace:
+      path: /home/jcluser/kubespray/roles/kubespray-defaults/defaults/main.yaml
+      regexp: '^kube_network_plugin_multus: false$'
+      replace: 'kube_network_plugin_multus: true'
+
+  # - name: Setup kubeconfig
+  #   command: "{{ item }}"
+  #   with_items:
+  #    - mkdir -p /home/jcluser/.kube
+  #    - cp -i /etc/kubernetes/admin.conf /home/jcluser/.kube/config
+  #    - chown -R jcluser:jcluser /home/jcluser/.kube
+  #   args:
+  #     warn: false

@@ -1,0 +1,11 @@
+---
+- hosts: k8s-master
+  tasks:
+  - name: Setup kubeconfig
+    command: "{{ item }}"
+    with_items:
+     - mkdir -p /home/jcluser/.kube
+     - cp -i /etc/kubernetes/admin.conf /home/jcluser/.kube/config
+     - chown -R jcluser:jcluser /home/jcluser/.kube
+    args:
+      warn: false

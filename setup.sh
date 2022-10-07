@@ -24,8 +24,8 @@ cd cn24mcms
 sudo ansible-galaxy collection install community.general community.crypto ansible.posix
 bash -c "(
 	cd k8s-setup ;
-	ansible-playbook master-stage1.yml --extra-vars 'ansible_sudo_pass=$WORKER_PASS k8s_master_mgtip=$k8s_master_mgtip k8s_worker1_mgtip=$k8s_worker1_mgtip k8s_worker2_mgtip=$k8s_worker2_mgtip k8s_master_mgtip=$k8s_worker2_mgtip
-')"
+	ansible-playbook master-stage1.yml --extra-vars 'ansible_sudo_pass=$WORKER_PASS k8s_master_mgtip=$k8s_master_mgtip k8s_worker1_mgtip=$k8s_worker1_mgtip k8s_worker2_mgtip=$k8s_worker2_mgtip k8s_master_mgtip=$k8s_worker2_mgtip'
+)"
 bash -c "(
         cd k8s-setup ;
         ansible-playbook worker.yml  --extra-vars 'ansible_sudo_pass=$WORKER_PASS ansible_ssh_pass=$WORKER_PASS'

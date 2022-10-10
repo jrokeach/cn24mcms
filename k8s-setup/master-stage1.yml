@@ -9,73 +9,12 @@
     hostname:
       name: k8s-master
 
-  - name: Set up ansible hosts file (edit this as required)
-    copy:
-      content: |
-        all:
-          hosts:
-            localhost:
-              ansible_connection: local
-              ip4addr: 192.168.50.10/24
-              ip4gw: 192.168.50.1
-            k8s-master:
-              ansible_host: 100.123.35.1
-              ip4addr: 192.168.50.10/24
-              ip4gw: 192.168.50.1
-              ansible_user: root
-          children:
-            k8s_workers:
-              hosts:
-                k8s-worker1:
-                  ansible_host: 100.123.35.2
-                  ip4addr: 192.168.50.21/24
-                  ip4gw: 192.168.50.1
-                k8s-worker2:
-                  ansible_host: 100.123.35.3
-                  ip4addr: 192.168.50.22/24
-                  ip4gw: 192.168.50.1
-                k8s-worker3:
-                  ansible_host: 100.123.35.4
-                  ip4addr: 192.168.50.23/24
-                  ip4gw: 192.168.50.1
-              vars:
-                ansible_user: root
-          vars:
-            ip4route: 192.168.0.0/16
-            ansible_user: jcluser
-            artifacts_dir: /tmp/mycluster
-            cluster_name: cluster0.lab.lan
-            container_manager: crio          # container runtime
-            # docker_image_repo: <your docker repository URL>
-            download_container: false
-            download_localhost: true
-            download_run_once: true
-            enable_dual_stack_networks: true
-            enable_nodelocaldns: false
-            etcd_deployment_type: host
-            host_key_checking: false
-            kube_network_plugin: cni
-            kube_network_plugin_multus: true
-            kubeconfig_localhost: true
-            kubectl_localhost: true
-            kubelet_deployment_type: host
-            override_system_hostname: false
-        kube-master:
-          hosts:
-            k8s-master:
-        kube-node:
-          hosts:
-            k8s-worker1:
-            k8s-worker2:
-            k8s-worker3:
-        etcd:
-          hosts:
-            k8s-master:
-        k8s-cluster:
-          children:
-            kube-master:
-            kube-node:
+  - name: Set up /etc/ansible/hosts
+    template:
+      src: templates/ansible_hosts.j2
       dest: /etc/ansible/hosts
+      backup: yes
+    register: netplan
 
   - name: Refresh inventory
     meta: refresh_inventory
@@ -184,6 +123,17 @@
     failed_when:
       - kubespray_clone.failed
       - not 'Local modifications exist in repository' in kubespray_clone.msg
+
+  # This works around
+  # http://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:/
+  #  cri-o:/1.24/xUbuntu_20.04/
+  # missing the cri-o package for the time being.
+  - name: Pin k8s version
+    become: false
+    replace:
+      path: /home/jcluser/kubespray/roles/kubespray-defaults/defaults/main.yaml
+      regexp: '^kube_version: .*$'
+      replace: 'kube_version: v1.23.12'
 
   - name: Disable node local DNS
     become: false

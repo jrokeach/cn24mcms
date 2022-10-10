@@ -124,6 +124,17 @@
       - kubespray_clone.failed
       - not 'Local modifications exist in repository' in kubespray_clone.msg
 
+  # This works around
+  # http://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:/
+  #  cri-o:/1.24/xUbuntu_20.04/
+  # missing the cri-o package for the time being.
+  - name: Pin k8s version
+    become: false
+    replace:
+      path: /home/jcluser/kubespray/roles/kubespray-defaults/defaults/main.yaml
+      regexp: '^kube_version: .*$'
+      replace: 'kube_version: v1.23.12'
+
   - name: Disable node local DNS
     become: false
     replace:

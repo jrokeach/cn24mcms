@@ -5,11 +5,12 @@ if [ "$EUID" -eq 0 ]
   exit
 fi
 
+# Export the variables that the ansible playbooks will need
+export WORKER_PASS k8s_master_mgtip k8s_worker1_mgtip k8s_worker2_mgtip k8s_worker3_mgtip
+
 # Collect inputs
 # Note that this currently only supports a statically assumed 1 master and 3 workers.
 # Ideally, this should be taken from a configuration file along with service IP address information.
-set -a
-
 WORKER_PASS=$(cat /proc/sys/kernel/random/uuid)
 WORKER_PASS_CONFIRM=$(cat /proc/sys/kernel/random/uuid)
 WORKER_PASS_ORIGINAL=$WORKER_PASS
@@ -26,9 +27,8 @@ do
 	read -sp "(Confirm) jcluser password: " WORKER_PASS_CONFIRM
 	echo
 done
-unset WORKER_PASS_CONFIRM
-unset WORKER_PASS_ORIGINAL
 
+# Input confirmation.
 confirm_settings="n"
 until [[ ${confirm_settings} =~ [yY] ]]
 do
@@ -45,7 +45,6 @@ do
 	echo "k8s-master mgt ip: ${k8s_worker3_mgtip:-100.123.35.4}"
 	read -p "Confirm [y/N]: " confirm_settings
 done
-unset confirm_settings
 
 # Get required repositories, software, and execute playbooks.
 sudo add-apt-repository --yes --update ppa:ansible/ansible

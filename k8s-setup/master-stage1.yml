@@ -76,10 +76,28 @@
       packages:
       - apt-transport-https
       - ca-certificates
+      - chrony
       - curl
       - gnupg-agent
       - software-properties-common
       - python3-netaddr
+      - linux-headers-5.4.0-125-generic
+      - linux-image-5.4.0-125-generic
+      - linux-modules-5.4.0-125-generic
+      - linux-modules-extra-5.4.0-125-generic
+    register: package_install
+
+  - name: Add JCL NTP server
+    lineinfile:
+      path: /etc/chrony/chrony.conf
+      insertbefore: '^pool .*maxsources'
+      firstmatch: yes
+      line: pool 100.123.0.1 iburst
+    register: chrony_ntpadd
+
+  - name: Sync with newly added NTP server
+    shell: 'systemctl stop chronyd && chronyd -q "server 100.123.0.1 iburst" && systemctl start chronyd'
+    when: chrony_ntpadd.changed
 
   - name: Add apt signing key for Kubernetes
     apt_key:

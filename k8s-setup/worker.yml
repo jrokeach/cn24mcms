@@ -33,3 +33,45 @@
       path: /etc/hosts
       regexp: '(\s+)ubuntu(\s+.*)?$'
       replace: '\1{{ inventory_hostname }}\2'
+
+  - name: Install packages
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - chrony
+      - linux-headers-5.4.0-125-generic
+      - linux-image-5.4.0-125-generic
+      - linux-modules-5.4.0-125-generic
+      - linux-modules-extra-5.4.0-125-generic
+    register: package_install
+
+  - name: Add JCL NTP server
+    lineinfile:
+      path: /etc/chrony/chrony.conf
+      insertbefore: '^pool .*maxsources'
+      firstmatch: yes
+      line: pool 100.123.0.1 iburst
+    register: chrony_ntpadd
+
+  - name: Sync with newly added NTP server
+    shell: 'systemctl stop chronyd && chronyd -q "server 100.123.0.1 iburst" && systemctl start chronyd'
+    when: chrony_ntpadd.changed
+
+  - name: Reboot if kernel/libs updated and requested
+    shell: sleep 10 && /sbin/shutdown -r now 'Rebooting to upgrade kernel/libs'
+    args:
+      removes: /var/run/reboot-required
+    async: 300
+    poll: 0
+    ignore_errors: true
+    when: package_install.changed
+    register: reboot
+
+  - name: Wait for system to become reachable
+    wait_for_connection:
+      delay: 30
+      timeout: 300
+    when: reboot.changed

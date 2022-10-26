@@ -49,7 +49,7 @@ done
 # Get required repositories, software, and execute playbooks.
 sudo add-apt-repository --yes --update ppa:ansible/ansible
 sudo apt-get install git ansible -y
-git clone --branch v0.0.2 --depth 1 https://github.com/jrokeach/cn24mcms.git
+git clone --branch v0.0.3 --depth 1 https://github.com/jrokeach/cn24mcms.git
 cd cn24mcms
 sudo ansible-galaxy collection install community.general community.crypto ansible.posix
 bash -c "(
@@ -62,3 +62,12 @@ bash -c "(
 )"
 bash -c '( cd ../kubespray ; ansible-playbook cluster.yml )'
 bash -c '( cd k8s-setup ; ansible-playbook master-stage2.yml )'
+
+#    30  tar -xzf contrail-analytics-22.3.0.71.tgz 
+#    31  tar -xzf contrail-manifests-k8s-22.3.0.71.tgz 
+# kubectl apply -f contrail-tools/contrail-readiness/crds
+# kubectl create configmap deployer-yaml --from-file=contrail-manifests-k8s/single-cluster/single_cluster_deployer_example.yaml
+# ENCODED_CREDS=dockerconfigstuffbase64
+# sed -i s/'<base64-encoded-credential>'/$ENCODED_CREDS/ contrail-tools/contrail-readiness/*.yaml
+# kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-controller.yaml
+# kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-preflight.yaml

@@ -167,6 +167,20 @@
       regexp: '^kube_network_plugin_multus: false$'
       replace: 'kube_network_plugin_multus: true'
 
+  - name: Set multus CNI version
+    become: false
+    lineinfile:
+      path: /home/jcluser/kubespray/roles/network_plugin/multus/defaults/main.yml
+      regexp: '^multus_cni_version: '
+      line: "multus_cni_version: \"0.3.1\""
+
+  - name: Set multus CNI version
+    become: false
+    lineinfile:
+      path: /home/jcluser/kubespray/extra_playbooks/roles/network_plugin/multus/defaults/main.yml
+      regexp: '^multus_cni_version: '
+      line: "multus_cni_version: \"0.3.1\""
+
   # - name: Setup kubeconfig
   #   command: "{{ item }}"
   #   with_items:

@@ -63,11 +63,24 @@ bash -c "(
 bash -c '( cd ../kubespray ; ansible-playbook cluster.yml )'
 bash -c '( cd k8s-setup ; ansible-playbook master-stage2.yml )'
 
-#    30  tar -xzf contrail-analytics-22.3.0.71.tgz 
-#    31  tar -xzf contrail-manifests-k8s-22.3.0.71.tgz 
-# kubectl apply -f contrail-tools/contrail-readiness/crds
-# kubectl create configmap deployer-yaml --from-file=contrail-manifests-k8s/single-cluster/single_cluster_deployer_example.yaml
-# ENCODED_CREDS=dockerconfigstuffbase64
-# sed -i s/'<base64-encoded-credential>'/$ENCODED_CREDS/ contrail-tools/contrail-readiness/*.yaml
-# kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-controller.yaml
-# kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-preflight.yaml
+echo "You will now need to finish setting up the cluster with Contrail Networking.
+1.	First, reboot this server.
+		shutdown -r now
+2.	Copy the contrail-analytics and contrail-manifests-k8s tarballs to this server, then untar:
+		tar -xzf contrail-analytics-22.3.0.71.tgz 
+		tar -xzf contrail-manifests-k8s-22.3.0.71.tgz 
+3.	Add your registry credentials to the manifests as per
+	https://www.juniper.net/documentation/us/en/software/cn-cloud-native22/cn-cloud-native-k8s-install-and-lcm/topics/task/cn-cloud-native-k8s-configure-secrets.html
+	a.	Set ENCODED_CREDS to the base64 encoded docker config
+	b.	Replace in files:
+		sed -i s/'<base64-encoded-credential>'/$ENCODED_CREDS/ contrail-manifests-k8s/*/*.yaml
+		sed -i s/'<base64-encoded-credential>'/$ENCODED_CREDS/ contrail-tools/contrail-readiness/*.yaml
+4.	Apply the contrail-readiness CRDs
+		kubectl apply -f contrail-tools/contrail-readiness/crds
+5.	Precheck (https://www.juniper.net/documentation/us/en/software/cn-cloud-native22/cn-cloud-native-k8s-install-and-lcm/topics/topic-map/cn-cloud-native-k8s-run-pre-post-flight-checks.html):
+		kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-controller.yaml
+		kubectl apply -f contrail-tools/contrail-readiness/contrail-readiness-preflight.yaml
+		kubectl get contrailreadiness preflight -o yaml (Until all tests passed)
+6.	Apply the deployer:
+		kubectl create configmap deployer-yaml --from-file=contrail-manifests-k8s/single-cluster/single_cluster_deployer_example.yaml
+"
